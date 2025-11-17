@@ -198,6 +198,35 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
               setClientId(data.client_uid);
             }
             
+            // Handle autonomous chat messages
+            if (data.type === 'autonomous-chat') {
+              const text = data.text;
+              if (text) {
+                console.log('[WebSocket] Received autonomous chat message:', {
+                  type: data.type,
+                  text: text,
+                  timestamp: data.timestamp,
+                  source: data.source
+                });
+                // Dispatch custom event for autonomous chat messages
+                window.dispatchEvent(new CustomEvent('autonomous-chat', { 
+                  detail: {
+                    text,
+                    type: data.type,
+                    timestamp: data.timestamp,
+                    source: data.source || 'autonomous'
+                  }
+                }));
+                // Also dispatch as text-response for UI compatibility
+                window.dispatchEvent(new CustomEvent('text-response', { 
+                  detail: {
+                    text,
+                    type: data.type
+                  }
+                }));
+              }
+            }
+            
             // Handle text messages
             if (data.type === 'full-text' || data.type === 'partial-text' || data.type === 'text' || data.type === 'user-input-transcription') {
               const text = data.text || (data.display_text && typeof data.display_text === 'object' ? data.display_text.text : data.display_text);

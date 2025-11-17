@@ -27,7 +27,6 @@ This platform is designed to hook into Twitch and other livestreaming services, 
 ## Quick Start
 
 ### Run Both Services (Recommended)
-
 Use the provided script to run both frontend and backend together:
 
 ```bash
@@ -39,6 +38,27 @@ This will start:
 - Backend WebSocket at `ws://localhost:12393/client-ws`
 
 Press `Ctrl+C` to stop both services.
+
+### Test Services
+
+After starting the services, you can test them with:
+
+```bash
+./test_services.sh
+```
+
+This script will check:
+- Frontend accessibility at `http://localhost:3000`
+- Backend server accessibility
+- Backend API endpoint (`/api/base-config`)
+- WebSocket port availability
+- **Autonomous Twitch Mode features:**
+  - Autonomous mode status endpoint
+  - Expression control API
+  - Motion control API
+  - Twitch integration status
+
+The script gracefully handles endpoints that aren't yet implemented (shows warnings instead of failures), making it useful for testing work-in-progress features.
 
 ### Run Services Separately
 

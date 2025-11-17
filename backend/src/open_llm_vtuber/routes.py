@@ -171,7 +171,8 @@ def init_client_ws_route(
 
 def init_webtool_routes(
     default_context_cache: ServiceContext,
-    ws_handler: Optional[WebSocketHandler] = None
+    ws_handler: Optional[WebSocketHandler] = None,
+    autonomous_generator: Optional[Any] = None
 ) -> APIRouter:
     """
     Create and return API routes for handling web tool interactions.
@@ -781,19 +782,91 @@ def init_webtool_routes(
         {
             "mode": str,  # "orphiq", "external-api", or "autonomous"
             "active": bool,  # Whether autonomous mode is active
-            "character": str  # Current character name
+            "character": str,  # Current character name
+            "autonomous_generator_enabled": bool,  # Whether random message generator is enabled
+            "autonomous_generator_interval": float  # Interval in seconds between random messages
         }
         """
         try:
+            # Get autonomous generator status
+            autonomous_enabled = False  # Default disabled - must be activated
+            autonomous_interval = 120.0  # Default 2 minutes
+            min_interval = 120.0  # Default 2 minutes
+            max_interval = 240.0  # Default 4 minutes
+            
+            if autonomous_generator:
+                autonomous_enabled = autonomous_generator.enabled
+                autonomous_interval = autonomous_generator.interval_seconds
+                min_interval = autonomous_generator.min_interval_seconds
+                max_interval = autonomous_generator.max_interval_seconds
+            
             return {
-                "mode": "orphiq",  # Default mode, can be extended
-                "active": True,
+                "mode": "autonomous" if autonomous_enabled else "manual",
+                "active": autonomous_enabled,  # Active only if enabled
                 "character": default_context_cache.character_config.character_name,
                 "character_id": default_context_cache.character_config.conf_uid,
+                "autonomous_generator_enabled": autonomous_enabled,
+                "autonomous_generator_interval": autonomous_interval,
+                "min_interval_seconds": min_interval,
+                "max_interval_seconds": max_interval,
+                "auto_responses_enabled": True,  # Automatic responses are always enabled
             }
         except Exception as e:
             logger.error(f"Error getting autonomous status: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error getting status: {str(e)}")
+    
+    @router.post("/api/autonomous/control")
+    async def autonomous_control(request: Request):
+        """
+        Control autonomous mode settings.
+        
+        Request body:
+        {
+            "enabled": bool,  # Optional: Enable/disable random message generator
+            "interval": float,  # Optional: Set base interval between random messages (seconds)
+            "min_interval": float,  # Optional: Set minimum interval (seconds, default: 120)
+            "max_interval": float  # Optional: Set maximum interval (seconds, default: 240)
+        }
+        
+        Returns:
+        {
+            "status": "success",
+            "enabled": bool,
+            "interval": float,
+            "min_interval": float,
+            "max_interval": float
+        }
+        """
+        try:
+            request_data = await request.json()
+            enabled = request_data.get("enabled")
+            interval = request_data.get("interval")
+            min_interval = request_data.get("min_interval")
+            max_interval = request_data.get("max_interval")
+            
+            response_data = {
+                "status": "success",
+            }
+            
+            if enabled is not None and autonomous_generator:
+                autonomous_generator.set_enabled(enabled)
+                response_data["enabled"] = enabled
+                logger.info(f"Autonomous generator enabled set to: {enabled}")
+            
+            if (interval is not None or min_interval is not None or max_interval is not None) and autonomous_generator:
+                # Use current interval if not provided
+                base_interval = interval if interval is not None else autonomous_generator.interval_seconds
+                autonomous_generator.set_interval(base_interval, min_interval, max_interval)
+                response_data["interval"] = base_interval
+                response_data["min_interval"] = autonomous_generator.min_interval_seconds
+                response_data["max_interval"] = autonomous_generator.max_interval_seconds
+                logger.info(f"Autonomous generator interval set: base={base_interval}s, range={autonomous_generator.min_interval_seconds}s-{autonomous_generator.max_interval_seconds}s")
+            
+            return response_data
+            
+        except Exception as e:
+            logger.error(f"Error controlling autonomous mode: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Error controlling autonomous mode: {str(e)}")
 
     @router.post("/api/autonomous/speak")
     async def autonomous_speak(request: Request):

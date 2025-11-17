@@ -835,9 +835,9 @@ export class CharacterHandler {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           this.props.setAudioPermissionGranted(true);
           this.props.setAudioStream(stream);
-          this.setupAudioProcessing(stream);
+          await this.setupAudioProcessing(stream);
         } else if (audioStream) {
-          this.setupAudioProcessing(audioStream);
+          await this.setupAudioProcessing(audioStream);
         }
         this.props.setIsRecording(true);
       } else {
@@ -850,51 +850,99 @@ export class CharacterHandler {
       }
     } catch (error) {
       console.error('[CharacterHandler] Error accessing microphone:', error);
+      this.props.setIsRecording(false);
+      this.props.setAudioPermissionGranted(false);
     }
   }
 
-  private setupAudioProcessing(stream: MediaStream): void {
+  private async setupAudioProcessing(stream: MediaStream): Promise<void> {
     console.log('[CharacterHandler] Setting up audio processing');
     
-    if (!this.audioContext) {
-      console.log('[CharacterHandler] Creating new AudioContext');
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      this.audioContext = new AudioContextClass({
-        sampleRate: this.sampleRate
-      });
-    }
-
-    const source = this.audioContext.createMediaStreamSource(stream);
-    this.streamProcessor = this.audioContext.createScriptProcessor(this.bufferSize, 1, 1);
-
-    this.streamProcessor.onaudioprocess = (e) => {
-      if (!this.isProcessing) {
-        this.isProcessing = true;
-        
-        const inputData = e.inputBuffer.getChannelData(0);
-        const float32Array = new Float32Array(inputData);
-        
-        // Calculate current volume
-        const currentVolume = this.calculateVolume(float32Array);
-        this.updateVolumeHistory(currentVolume);
-        
-        // Add to buffer
-        this.audioBuffer.push(float32Array);
-        
-        // Process buffer if it reaches a certain size
-        if (this.audioBuffer.length >= 4) { // Process every 4 chunks (16384 samples)
-          this.processAudioBuffer();
+    try {
+      // Clean up any existing audio processing first
+      this.stopAudioProcessing();
+      
+      // Use existing AudioContext from props if available, otherwise create new one
+      if (!this.audioContext) {
+        if (this.props.audioContextRef?.current) {
+          this.audioContext = this.props.audioContextRef.current;
+          console.log('[CharacterHandler] Using AudioContext from props');
+        } else {
+          console.log('[CharacterHandler] Creating new AudioContext');
+          const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          if (!AudioContextClass) {
+            throw new Error('AudioContext not supported in this browser');
+          }
+          this.audioContext = new AudioContextClass({
+            sampleRate: this.sampleRate
+          });
+          
+          // Update the ref if it exists
+          if (this.props.audioContextRef) {
+            this.props.audioContextRef.current = this.audioContext;
+          }
         }
-        
-        this.isProcessing = false;
       }
-    };
 
-    source.connect(this.streamProcessor);
-    this.streamProcessor.connect(this.audioContext.destination);
+      // Ensure AudioContext is resumed (it might be suspended)
+      if (this.audioContext.state === 'suspended') {
+        console.log('[CharacterHandler] Resuming suspended AudioContext');
+        await this.audioContext.resume();
+      }
 
-    // Start silence detection
-    this.startSilenceDetection();
+      // Validate stream
+      if (!stream || stream.getTracks().length === 0) {
+        throw new Error('Invalid audio stream: no tracks available');
+      }
+
+      // Check if stream is still active
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack || audioTrack.readyState === 'ended') {
+        throw new Error('Audio stream track has ended');
+      }
+
+      const source = this.audioContext.createMediaStreamSource(stream);
+      this.streamProcessor = this.audioContext.createScriptProcessor(this.bufferSize, 1, 1);
+
+      this.streamProcessor.onaudioprocess = (e) => {
+        if (!this.isProcessing) {
+          this.isProcessing = true;
+          
+          try {
+            const inputData = e.inputBuffer.getChannelData(0);
+            const float32Array = new Float32Array(inputData);
+            
+            // Calculate current volume
+            const currentVolume = this.calculateVolume(float32Array);
+            this.updateVolumeHistory(currentVolume);
+            
+            // Add to buffer
+            this.audioBuffer.push(float32Array);
+            
+            // Process buffer if it reaches a certain size (reduced from 4 to 2 for more frequent sending)
+            if (this.audioBuffer.length >= 2) { // Process every 2 chunks (8192 samples) for more frequent voice data
+              this.processAudioBuffer();
+            }
+          } catch (error) {
+            console.error('[CharacterHandler] Error in audio processing callback:', error);
+          } finally {
+            this.isProcessing = false;
+          }
+        }
+      };
+
+      source.connect(this.streamProcessor);
+      this.streamProcessor.connect(this.audioContext.destination);
+
+      // Start silence detection
+      this.startSilenceDetection();
+      
+      console.log('[CharacterHandler] Audio processing setup complete');
+    } catch (error) {
+      console.error('[CharacterHandler] Error setting up audio processing:', error);
+      this.stopAudioProcessing();
+      throw error;
+    }
   }
 
   private calculateVolume(audioData: Float32Array): number {
