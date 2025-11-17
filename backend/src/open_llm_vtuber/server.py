@@ -45,12 +45,22 @@ class WebSocketServer:
         default_context_cache = ServiceContext()
         default_context_cache.load_from_config(config)
 
-        # Include routes
+        # Create shared WebSocketHandler for both WebSocket and REST routes
+        from .websocket_handler import WebSocketHandler
+        ws_handler = WebSocketHandler(default_context_cache)
+
+        # Include routes with shared WebSocketHandler
         self.app.include_router(
-            init_client_ws_route(default_context_cache=default_context_cache),
+            init_client_ws_route(
+                default_context_cache=default_context_cache,
+                ws_handler=ws_handler
+            ),
         )
         self.app.include_router(
-            init_webtool_routes(default_context_cache=default_context_cache),
+            init_webtool_routes(
+                default_context_cache=default_context_cache,
+                ws_handler=ws_handler
+            ),
         )
 
         # Mount cache directory first (to ensure audio file access)
