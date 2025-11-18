@@ -319,39 +319,6 @@ const ModelUI: React.FC<ModelUIProps> = ({
             </button>
           </div>
         )}
-        
-        {/* Status Display */}
-        {modelLoaded && (
-          <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white px-2 py-1 md:px-3 md:py-2 rounded text-xs z-20 max-w-[200px]">
-            <div className="flex items-center space-x-2 mb-1">
-              <div className="h-2 w-2 rounded-full bg-green-500"></div>
-              <span className="font-medium">Model loaded</span>
-            </div>
-            <div className="text-gray-300 space-y-1">
-              <div className="truncate" title={modelPath}>
-                <span className="text-gray-400">Path:</span> {modelPath.split('/').pop()}
-              </div>
-              <div>
-                <span className="text-gray-400">Scale:</span> {safeModelScale.toFixed(2)}
-              </div>
-              <div>
-                <span className="text-gray-400">Position:</span> X:{safeModelPosition.x.toFixed(2)}, Y:{safeModelPosition.y.toFixed(2)}
-              </div>
-              <div className="flex items-center mt-1">
-                <span className={`h-2 w-2 rounded-full mr-1 ${isPointerInteractive ? 'bg-blue-500' : 'bg-gray-500'}`}></span>
-                <span className={`text-xs ${isPointerInteractive ? 'text-blue-300' : 'text-gray-400'}`}>
-                  Pointer Follow: {isPointerInteractive ? 'ON' : 'OFF'}
-                </span>
-              </div>
-              <div className="flex items-center">
-                <span className={`h-2 w-2 rounded-full mr-1 ${isScrollToResizeEnabled ? 'bg-blue-500' : 'bg-gray-500'}`}></span>
-                <span className={`text-xs ${isScrollToResizeEnabled ? 'text-blue-300' : 'text-gray-400'}`}>
-                  Scroll Resize: {isScrollToResizeEnabled ? 'ON' : 'OFF'}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Subtitles display */}
         {showSubtitles && lastAiMessage && (
