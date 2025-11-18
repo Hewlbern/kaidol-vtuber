@@ -135,10 +135,20 @@ const ModelUI: React.FC<ModelUIProps> = ({
       setError(null);
     };
     
-    const handleModelLoadComplete = () => {
-      console.log('[ModelUI] DEBUG: ✅ EVENT: model-load-complete triggered');
+    const handleModelLoadComplete = (event: CustomEvent<{model?: unknown; app?: unknown}>) => {
+      console.log('[ModelUI] DEBUG: ✅ EVENT: model-load-complete triggered', event.detail);
       setIsLoading(false);
       setModelLoaded(true);
+      
+      // Capture model and app references from the event
+      if (event.detail?.model) {
+        modelRef.current = event.detail.model as Live2DModel;
+        console.log('[ModelUI] DEBUG: Model reference captured');
+      }
+      if (event.detail?.app) {
+        appRef.current = event.detail.app as Live2DApp;
+        console.log('[ModelUI] DEBUG: App reference captured');
+      }
     };
     
     const handleModelLoadError = (event: CustomEvent<{message?: string}>) => {
@@ -149,13 +159,13 @@ const ModelUI: React.FC<ModelUIProps> = ({
     
     console.log('[ModelUI] DEBUG: Setting up model loading event listeners');
     window.addEventListener('model-load-start', handleModelLoadStart);
-    window.addEventListener('model-load-complete', handleModelLoadComplete);
+    window.addEventListener('model-load-complete', handleModelLoadComplete as EventListener);
     window.addEventListener('model-load-error', handleModelLoadError as EventListener);
     
     return () => {
       console.log('[ModelUI] DEBUG: Removing model loading event listeners');
       window.removeEventListener('model-load-start', handleModelLoadStart);
-      window.removeEventListener('model-load-complete', handleModelLoadComplete);
+      window.removeEventListener('model-load-complete', handleModelLoadComplete as EventListener);
       window.removeEventListener('model-load-error', handleModelLoadError as EventListener);
     };
   }, [isClient]);
@@ -237,19 +247,25 @@ const ModelUI: React.FC<ModelUIProps> = ({
     }
   }, [librariesLoaded, isLoading, modelLoaded, error, containerDimensions, modelPath]);
 
-  // Update model position when it changes
+  // Update model position when it changes or when model loads
   useEffect(() => {
-    if (modelRef.current && appRef.current) {
+    if (modelRef.current && appRef.current && modelLoaded) {
       const position = typeof modelPosition === 'object' && modelPosition !== null
         ? modelPosition
         : { x: 0.5, y: 0.5 };
+      
+      console.log('[ModelUI] DEBUG: Updating model position:', {
+        position,
+        screenWidth: appRef.current.screen.width,
+        screenHeight: appRef.current.screen.height
+      });
       
       modelRef.current.position.set(
         position.x * appRef.current.screen.width,
         position.y * appRef.current.screen.height
       );
     }
-  }, [modelPosition, safeModelPosition]); // Include safeModelPosition in dependencies
+  }, [modelPosition, safeModelPosition, modelLoaded]); // Include modelLoaded to apply position when model becomes ready
 
   return (
     <div ref={containerRef} className="flex-1 relative w-full h-full overflow-hidden bg-gray-900">

@@ -24,26 +24,14 @@ export default function SettingsTab({
   isPointerInteractive = true,
   isScrollToResizeEnabled = false
 }: SettingsTabProps) {
-  const { scaleState, handlePositionChange } = useModel();
+  const { scaleState } = useModel();
   const rafRef = useRef<number | null>(null);
   
-  // Use refs to track the current values
-  const positionRef = useRef<{ x: number, y: number }>(currentPosition);
-  const isDraggingRef = useRef<boolean>(false);
   
-  // Local state for UI rendering
+  // Local state for toggles only (position uses props directly like scale)
   const [position, setPosition] = useState<{ x: number, y: number }>(currentPosition);
   const [pointerInteractive, setPointerInteractive] = useState<boolean>(isPointerInteractive);
   const [scrollToResize, setScrollToResize] = useState<boolean>(isScrollToResizeEnabled);
-  
-  // Update local state and refs when props change
-  useEffect(() => {
-    if (!isDraggingRef.current) {
-      console.log('[SettingsTab] Updating position from props:', currentPosition);
-      positionRef.current = currentPosition;
-      setPosition(currentPosition);
-    }
-  }, [currentPosition]);
   
   // Update toggle states when props change
   useEffect(() => {
@@ -57,30 +45,6 @@ export default function SettingsTab({
       setScrollToResize(isScrollToResizeEnabled);
     }
   }, [isScrollToResizeEnabled]);
-  
-  // Setup animation frame for smoother updates
-  useEffect(() => {
-    let rafId: number | null = null;
-    
-    const updateValues = () => {
-      if (isDraggingRef.current) {
-        onPositionChange(positionRef.current.x, positionRef.current.y);
-      }
-      if (isDraggingRef.current) {
-        rafId = requestAnimationFrame(updateValues);
-      }
-    };
-
-    if (isDraggingRef.current) {
-      rafId = requestAnimationFrame(updateValues);
-    }
-    
-    return () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-    };
-  }, [onPositionChange]);
   
   // Handle scale change with RAF for smooth updates
   const handleScaleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,55 +63,45 @@ export default function SettingsTab({
     });
   };
 
-  // Handle position change with refs
+  // Handle position change with RAF for smooth updates (matches scale pattern)
   const handlePositionXChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    isDraggingRef.current = true;
     const x = parseFloat(e.target.value);
-    const newPosition = { ...positionRef.current, x };
-    positionRef.current = newPosition;
-    setPosition(newPosition);
+    const newY = currentPosition.y;
     
-    console.log('[SettingsTab] X position change:', { x, newPosition });
-    
-    if (!rafRef.current) {
-      rafRef.current = requestAnimationFrame(() => {
-        handlePositionChange(newPosition);
-        rafRef.current = null;
-      });
+    // Cancel any pending RAF
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
+    
+    // Use RAF for smooth updates (matches scale pattern)
+    rafRef.current = requestAnimationFrame(() => {
+      onPositionChange(x, newY);
+      rafRef.current = null;
+    });
   };
   
   const handlePositionYChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    isDraggingRef.current = true;
     const y = parseFloat(e.target.value);
-    const newPosition = { ...positionRef.current, y };
-    positionRef.current = newPosition;
-    setPosition(newPosition);
+    const newX = currentPosition.x;
     
-    console.log('[SettingsTab] Y position change:', { y, newPosition });
-    
-    if (!rafRef.current) {
-      rafRef.current = requestAnimationFrame(() => {
-        handlePositionChange(newPosition);
-        rafRef.current = null;
-      });
+    // Cancel any pending RAF
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
-  };
-  
-  // Apply position changes on mouse up / touch end
-  const applyPositionChange = () => {
-    isDraggingRef.current = false;
-    console.log('[SettingsTab] Applying final position:', positionRef.current);
-    handlePositionChange(positionRef.current);
+    
+    // Use RAF for smooth updates (matches scale pattern)
+    rafRef.current = requestAnimationFrame(() => {
+      onPositionChange(newX, y);
+      rafRef.current = null;
+    });
   };
   
   // Reset to default values
   const handleReset = () => {
     const defaultScale = 0.8;
     const defaultPosition = { x: 0.5, y: 0.5 };
-    
-    positionRef.current = defaultPosition;
-    setPosition(defaultPosition);
     
     onScaleChange(defaultScale);
     onPositionChange(defaultPosition.x, defaultPosition.y);
@@ -218,7 +172,7 @@ export default function SettingsTab({
                 Horizontal (X)
               </label>
               <span className="text-sm font-mono bg-[#1a1b2e]/80 text-white px-3 py-1 rounded-lg border border-[#6366f1]/20">
-                {position.x.toFixed(2)}
+                {currentPosition.x.toFixed(2)}
               </span>
             </div>
 
@@ -227,12 +181,8 @@ export default function SettingsTab({
               min="0" 
               max="1" 
               step="0.01" 
-              value={position.x}
+              value={currentPosition.x}
               onChange={handlePositionXChange}
-              onMouseDown={() => isDraggingRef.current = true}
-              onMouseUp={applyPositionChange}
-              onTouchStart={() => isDraggingRef.current = true}
-              onTouchEnd={applyPositionChange}
               className="w-full h-2 bg-[#1a1b2e] rounded-lg appearance-none cursor-pointer accent-[#8b5cf6] hover:accent-[#ec4899]"
             />
 
@@ -249,7 +199,7 @@ export default function SettingsTab({
                 Vertical (Y)
               </label>
               <span className="text-sm font-mono bg-[#1a1b2e]/80 text-white px-3 py-1 rounded-lg border border-[#6366f1]/20">
-                {position.y.toFixed(2)}
+                {currentPosition.y.toFixed(2)}
               </span>
             </div>
 
@@ -258,12 +208,8 @@ export default function SettingsTab({
               min="0" 
               max="1" 
               step="0.01" 
-              value={position.y}
+              value={currentPosition.y}
               onChange={handlePositionYChange}
-              onMouseDown={() => isDraggingRef.current = true}
-              onMouseUp={applyPositionChange}
-              onTouchStart={() => isDraggingRef.current = true}
-              onTouchEnd={applyPositionChange}
               className="w-full h-2 bg-[#1a1b2e] rounded-lg appearance-none cursor-pointer accent-[#8b5cf6] hover:accent-[#ec4899]"
             />
 
@@ -334,9 +280,7 @@ export default function SettingsTab({
         </button>
         <button
           onClick={() => {
-            const centeredPosition = { x: 0.5, y: 0.5 };
-            setPosition(centeredPosition);
-            onPositionChange(centeredPosition.x, centeredPosition.y);
+            onPositionChange(0.5, 0.5);
           }}
           className="py-3 px-4 bg-gradient-to-r from-[#8b5cf6] to-[#6366f1] text-white rounded-lg font-medium hover:from-[#ec4899] hover:to-[#8b5cf6] transition-all duration-200 shadow-[0_0_15px_rgba(139,92,246,0.3)] transform hover:-translate-y-1"
         >
