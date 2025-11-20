@@ -51,7 +51,7 @@ character_config:
         # 'openai_compatible_llm', 'llama_cpp_llm', 'claude_llm', 'ollama_llm'
         # 'openai_llm', 'gemini_llm', 'zhipu_llm', 'deepseek_llm', 'groq_llm'
         # 'mistral_llm'
-        llm_provider: 'ollama_llm'
+        llm_provider: 'gemini_llm'
         # let ai speak as soon as the first comma is received on the first sentence
         # to reduced latency.
         faster_first_response: True
@@ -130,12 +130,12 @@ character_config:
 
       openai_llm:
         llm_api_key: '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'
-        model: 'gpt-4o'
+        model: 'gpt-5.0'
         temperature: 1.0 # value between 0 to 2
 
       gemini_llm:
-        llm_api_key: 'Your Gemini API Key'
-        model: 'gemini-2.0-flash-exp'
+        llm_api_key: 'AIzaSyA13YyaKMCCf7gOz2cowtD3ozrpoKbROTQ'
+        model: 'gemini-2.5-flash'
         temperature: 1.0 # value between 0 to 2
 
       zhipu_llm:
@@ -254,11 +254,12 @@ character_config:
 
   # =================== Text to Speech ===================
   tts_config:
-    tts_model: 'edge_tts'
+    tts_model: 'elevenlabs_tts'
     # text to speech model options:
     #   'azure_tts', 'pyttsx3_tts', 'edge_tts', 'bark_tts',
     #   'cosyvoice_tts', 'melo_tts', 'coqui_tts',
     #   'fish_api_tts', 'x_tts', 'gpt_sovits_tts', 'sherpa_onnx_tts'
+    #   'minimax_tts', 'elevenlabs_tts'
 
     azure_tts:
       api_key: 'azure-api-key'
@@ -328,9 +329,9 @@ character_config:
 
     fish_api_tts:
       # The API key for the Fish TTS API.
-      api_key: ''
+      api_key: 'c4e9e4a0804f41899205a77bb44e7de6'
       # The reference ID for the voice to be used. Get it on the [Fish Audio website](https://fish.audio/).
-      reference_id: ''
+      reference_id: '8ef4a238714b45718ce04243307c57a7'
       # Either 'normal' or 'balanced'. balance is faster but lower quality.
       latency: 'balanced'
       base_url: 'https://api.fish.audio'
@@ -365,7 +366,54 @@ character_config:
       num_threads: 1 # Number of computation threads
       speed: 1.0 # Speech speed (1.0 is normal)
       debug: false # Enable debug mode (True/False)
+  
+    siliconflow_tts:
+      api_url: "https://api.siliconflow.cn/v1/audio/speech"
+      api_key: "your key"
+      default_model: "FunAudioLLM/CosyVoice2-0.5B"
+      default_voice: "speech:Dreamflowers:5bdstvc39i:xkqldnpasqmoqbakubom your voice name"  # Default voice configuration in the format: "speech:MODEL_NAME:VOICE_ID:your voice name"
+      sample_rate: 32000  # Control the output sample rate. The default values and differ for different video output types, as follows: opus: Supports 48000 Hz. wav, pcm: Supports 8000, 16000, 24000, 32000, 44100 Hz, with a default of 44100 Hz. mp3: Supports 32000, 44100 Hz, with a default of 44100 Hz.
+      response_format: "mp3" # The format to audio out. Supported formats are mp3, opus, wav, pcm
+      stream: true
+      speed: 1
+      gain: 0
 
+    spark_tts:
+      api_url: 'http://127.0.0.1:6006/' # API URL. Uses Gradio's built-in front-end API. Repository: https://github.com/SparkAudio/Spark-TTS
+      api_name:  "voice_clone" # Endpoint name. Options: voice_clone, voice_creation
+      prompt_wav_upload: "https://uploadstatic.mihoyo.com/ys-obc/2022/11/02/16576950/4d9feb71760c5e8eb5f6c700df12fa0c_6824265537002152805.mp3" # Reference audio URL. Provide if api_name equals "voice_clone"
+      gender:  "female" # Voice type (gender). Provide if api_name equals "voice_creation"
+      pitch:  3 # Pitch shift (in semitones) default 3,range 1-5. Valid only if api_name equals "voice_creation"
+      speed:  3 # Speed of the voice (in percent) default 3,range 1-5. Valid only if api_name equals "voice_creation"
+
+    openai_tts: # Configuration for OpenAI-compatible TTS endpoints
+      # These settings override the defaults in the openai_tts.py file if provided
+      model: 'kokoro' # Model name expected by the server (e.g., 'tts-1', 'kokoro')
+      voice: 'af_sky+af_bella' # Voice name(s) expected by the server (e.g., 'alloy', 'af_sky+af_bella')
+      api_key: 'not-needed' # API key if required by the server
+      base_url: 'http://localhost:8880/v1' # Base URL of the TTS server
+      file_extension: 'mp3' # Audio file format ('mp3' or 'wav')
+
+    # For more details, see: https://platform.minimaxi.com/document/Announcement
+    minimax_tts:
+      group_id: '' # Your minimax group_id
+      api_key: '' # Your minimax api_key
+      # Supported models: 'speech-02-hd', 'speech-02-turbo' (recommended: 'speech-02-turbo')
+      model: 'speech-02-turbo' # minimax model name
+      voice_id: 'female-shaonv' # minimax voice id, default is 'female-shaonv'
+      # Custom pronunciation dictionary, default empty.
+      # Example: '{"tone": ["测试/(ce4)(shi4)", "危险/dangerous"]}'
+      pronunciation_dict: ''
+
+    elevenlabs_tts:
+      api_key: 'sk_6dd3a00f085057be89892ff260922c2bd7ada3835c763c19'
+      voice_id: 'jqcCZkN6Knx8BJ5TBdYR' # Voice ID from ElevenLabs
+      model_id: 'eleven_multilingual_v2' # Model ID (e.g., eleven_multilingual_v2)
+      output_format: 'mp3_44100_128' # Output audio format (e.g., mp3_44100_128)
+      stability: 0.5 # Voice stability (0.0 to 1.0)
+      similarity_boost: 0.5 # Voice similarity boost (0.0 to 1.0)
+      style: 0.0 # Voice style exaggeration (0.0 to 1.0)
+      use_speaker_boost: true # Enable speaker boost for better quality
 
   # =================== Voice Activity Detection ===================
   vad_config:
