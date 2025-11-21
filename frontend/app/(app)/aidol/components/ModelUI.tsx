@@ -59,10 +59,7 @@ interface Live2DApp {
  * Combined component for rendering Live2D model with background
  */
 const ModelUI: React.FC<ModelUIProps> = ({
-  modelScale,
   modelPosition,
-  isPointerInteractive = false,
-  isScrollToResizeEnabled = false,
   showSubtitles = false,
   lastAiMessage,
   isClient,
@@ -93,7 +90,6 @@ const ModelUI: React.FC<ModelUIProps> = ({
   
   // Add safety check for modelPosition with useMemo
   const safeModelPosition = useMemo(() => modelPosition || { x: 0.5, y: 0.5 }, [modelPosition]);
-  const safeModelScale = modelScale !== undefined ? modelScale : .2;
   
   // Check for Live2D libraries
   useEffect(() => {

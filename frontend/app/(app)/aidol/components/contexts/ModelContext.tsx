@@ -53,7 +53,8 @@ export const ModelProvider: React.FC<ModelProviderProps> = ({ children, isConnec
   const [positionState, positionDispatch] = useReducer(positionReducer, { x: 0.5, y: 0.5 });
 
   // Add position state
-  const [modelPosition, setModelPosition] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_modelPosition, setModelPosition] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
 
   // Motion state with reducer
   const [motionState, motionDispatch] = useReducer(motionReducer, { 

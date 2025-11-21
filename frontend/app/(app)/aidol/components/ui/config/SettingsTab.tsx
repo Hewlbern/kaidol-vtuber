@@ -29,7 +29,7 @@ export default function SettingsTab({
   
   
   // Local state for toggles only (position uses props directly like scale)
-  const [position, setPosition] = useState<{ x: number, y: number }>(currentPosition);
+  // const [position, setPosition] = useState<{ x: number, y: number }>(currentPosition);
   const [pointerInteractive, setPointerInteractive] = useState<boolean>(isPointerInteractive);
   const [scrollToResize, setScrollToResize] = useState<boolean>(isScrollToResizeEnabled);
   
