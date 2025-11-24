@@ -132,6 +132,8 @@ def run(console_log_level: str = "INFO") -> None:
         host=server_config.host,
         port=server_config.port,
         log_level=console_log_level.lower(),
+        proxy_headers=True,
+        forwarded_allow_ips="127.0.0.1,::1",
     )
 
 
