@@ -577,7 +577,7 @@ export default function VTuberUI() {
         console.error('[VTuberUI] Failed to create AudioContext:', error);
         // Create a fallback context even if the main one fails
         try {
-          const fallbackContext = new (window as any).webkitAudioContext();
+          const fallbackContext = new (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext();
           setAudioContext(fallbackContext);
           console.log('[VTuberUI] Using fallback AudioContext');
         } catch (fallbackError) {

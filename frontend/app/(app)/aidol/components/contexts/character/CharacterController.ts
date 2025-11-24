@@ -250,7 +250,7 @@ export class CharacterHandler {
     
     // Set model path for expression loading if provided
     if (modelPath && model) {
-      (model as any).modelPath = modelPath;
+      (model as unknown as { modelPath: string }).modelPath = modelPath;
       console.log('[CharacterHandler] Model path set for expressions:', modelPath);
     }
     

@@ -20,9 +20,9 @@ class TTSFactory:
 
             return BarkTTSEngine(kwargs.get("voice"))
         elif engine_type == "edge_tts":
-            from .edge_tts import TTSEngine as EdgeTTSEngine
+            from .edge_tts import EdgeTTSEngine
 
-            return EdgeTTSEngine(kwargs.get("voice"))
+            return EdgeTTSEngine(kwargs.get("voice"), kwargs.get("rvc_config"))
         elif engine_type == "pyttsx3_tts":
             from .pyttsx3_tts import TTSEngine as Pyttsx3TTSEngine
 

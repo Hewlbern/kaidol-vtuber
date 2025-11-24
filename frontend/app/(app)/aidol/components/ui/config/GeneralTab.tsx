@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useModel } from '../../contexts/ModelContext';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 
@@ -43,37 +43,8 @@ export default function GeneralTab({
   // Add connection-related state
   const [backendUrl, setBackendUrl] = useState('ws://localhost:12393/client-ws');
   
-  // Load characters and backgrounds on component mount, but don't trigger changes
-  useEffect(() => {
-    // Only perform the initial load once
-    if (!initialLoadComplete) {
-      loadCharactersAndBackgrounds();
-      setInitialLoadComplete(true);
-    }
-  }, [initialLoadComplete]);
-  
-  // Load saved settings from localStorage on mount
-  useEffect(() => {
-    const savedUrl = localStorage.getItem('backendUrl');
-    const savedAutoReconnect = localStorage.getItem('autoReconnect');
-    if (savedUrl) {
-      setBackendUrl(savedUrl);
-    }
-    if (savedAutoReconnect !== null) {
-      setAutoReconnect(savedAutoReconnect === 'true');
-    }
-  }, [setAutoReconnect]);
-  
-  // Load both characters and backgrounds without triggering changes
-  const loadCharactersAndBackgrounds = async () => {
-    await Promise.all([
-      loadCharactersWithoutChange(),
-      loadBackgroundsWithoutChange()
-    ]);
-  };
-  
   // Load characters from API or window.appConfig without triggering a change
-  const loadCharactersWithoutChange = async () => {
+  const loadCharactersWithoutChange = useCallback(async () => {
     try {
       let characterList: Character[] = [];
       
@@ -103,10 +74,10 @@ export default function GeneralTab({
     } catch (error) {
       console.error('Error loading characters:', error);
     }
-  };
+  }, []);
   
   // Load backgrounds without triggering a change
-  const loadBackgroundsWithoutChange = async () => {
+  const loadBackgroundsWithoutChange = useCallback(async () => {
     try {
       let backgroundList: string[] = [];
       
@@ -141,7 +112,36 @@ export default function GeneralTab({
     } catch (error) {
       console.error('Error loading backgrounds:', error);
     }
-  };
+  }, []);
+  
+  // Load both characters and backgrounds without triggering changes
+  const loadCharactersAndBackgrounds = useCallback(async () => {
+    await Promise.all([
+      loadCharactersWithoutChange(),
+      loadBackgroundsWithoutChange()
+    ]);
+  }, [loadCharactersWithoutChange, loadBackgroundsWithoutChange]);
+  
+  // Load characters and backgrounds on component mount, but don't trigger changes
+  useEffect(() => {
+    // Only perform the initial load once
+    if (!initialLoadComplete) {
+      loadCharactersAndBackgrounds();
+      setInitialLoadComplete(true);
+    }
+  }, [initialLoadComplete, loadCharactersAndBackgrounds]);
+  
+  // Load saved settings from localStorage on mount
+  useEffect(() => {
+    const savedUrl = localStorage.getItem('backendUrl');
+    const savedAutoReconnect = localStorage.getItem('autoReconnect');
+    if (savedUrl) {
+      setBackendUrl(savedUrl);
+    }
+    if (savedAutoReconnect !== null) {
+      setAutoReconnect(savedAutoReconnect === 'true');
+    }
+  }, [setAutoReconnect]);
   
   // Load backgrounds and potentially trigger a change event (used by refresh button)
   const loadBackgrounds = async () => {
