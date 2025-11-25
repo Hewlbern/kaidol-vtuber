@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
     libportaudio2 \
-    python3.11 \
-    python3.11-dev \
+    python3.10 \
+    python3.10-dev \
     python3-pip \
     g++ \
     ca-certificates \
@@ -39,7 +39,7 @@ WORKDIR /app
 FROM base AS dependencies
 
 # Upgrade pip and install build tools
-RUN python3.11 -m pip install --upgrade pip setuptools wheel
+RUN python3.10 -m pip install --upgrade pip setuptools wheel
 
 # Copy dependency files first (for better Docker layer caching)
 COPY pyproject.toml ./
@@ -71,17 +71,23 @@ ENV PYTHONUNBUFFERED=1 \
     MODELSCOPE_CACHE=/app/models \
     PORT=12393
 
-# Copy application code
+# Copy application code (includes src/, config/, and all other files)
 COPY --chown=appuser:appuser . .
+# Verify src directory was copied
+RUN test -d src/open_llm_vtuber || (echo "ERROR: src directory not found!" && exit 1)
 
 # Install the package in editable mode (this installs all dependencies from pyproject.toml)
-# PyTorch is installed as part of dependencies, but we can override with CPU version if needed
-RUN pip3 install --no-cache-dir -e . || \
-    (pip3 install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-     pip3 install --no-cache-dir -e .)
+# Note: omegaconf==2.0.6 requires pip<24.1 due to invalid metadata, so we downgrade pip first
+RUN python3.10 -m pip install --no-cache-dir "pip<24.1" && \
+    python3.10 -m pip install --no-cache-dir -e . || \
+    (python3.10 -m pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+     python3.10 -m pip install --no-cache-dir -e .)
+# Verify critical dependencies are installed
+RUN python3.10 -c "import tomli, uvicorn, loguru; print('Core dependencies verified')" || \
+    (echo "ERROR: Core dependencies missing!" && exit 1)
 
 # Install optional TTS dependencies that might not be in pyproject.toml
-RUN pip3 install --no-cache-dir \
+RUN python3.10 -m pip install --no-cache-dir \
     edge-tts \
     azure-cognitiveservices-speech \
     py3-tts || true
@@ -114,4 +120,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:12393/health || exit 1
 
 # Default command
-CMD ["python3", "run_server.py"]
+CMD ["python3.10", "run_server.py"]

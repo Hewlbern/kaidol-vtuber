@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: open-llm-vtuber-backend
+    ports:
+      - "12393:12393"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - HF_HOME=/app/models
+      - MODELSCOPE_CACHE=/app/models
+    # Note: Create .env file in backend/ directory for API keys (optional)
+    # Note: Set host: '0.0.0.0' in conf.yaml for Docker (instead of 'localhost')
+    env_file:
+      - .env
+    volumes:
+      # Mount configuration file (read-only)
+      - ./conf.yaml:/app/conf.yaml:ro
+      # Mount configuration directories (writable - app needs to write model_dict.json)
+      - ./config:/app/config
+      - ./model_dict.json:/app/model_dict.json:ro
+      # Mount runtime directories (read-write for persistence)
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+      - ./models:/app/models
+      - ./chat_history:/app/chat_history
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:12393/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
