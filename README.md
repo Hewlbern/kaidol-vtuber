@@ -10,9 +10,7 @@ This platform is designed to hook into Twitch and other livestreaming services, 
 
 ### Related Projects
 
-- **[character.hiero.gl](https://character.hiero.gl)** - Example implementation and character showcase
-- **[szar.ourosociety.com](https://szar.ourosociety.com)** - Project resources and documentation
-- **[ourosociety.com](https://ourosociety.com)** - Main project website
+- **[Klikit TV!](https://klikit.tv/)
 - **[Voice Model Platform](https://v0-voice-model-ux.vercel.app/)** - Voice model marketplace and management
 
 ### Coming Soon

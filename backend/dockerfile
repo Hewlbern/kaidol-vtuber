@@ -71,10 +71,13 @@ ENV PYTHONUNBUFFERED=1 \
     MODELSCOPE_CACHE=/app/models \
     PORT=12393
 
-# Copy application code (includes src/, config/, and all other files)
+# Copy application code (includes src/, config/, conf.yaml, and all other files)
 COPY --chown=appuser:appuser . .
-# Verify src directory was copied
-RUN test -d src/open_llm_vtuber || (echo "ERROR: src directory not found!" && exit 1)
+# Verify critical files and directories were copied
+RUN test -d src/open_llm_vtuber || (echo "ERROR: src directory not found!" && exit 1) && \
+    test -f conf.yaml || (echo "ERROR: conf.yaml not found!" && exit 1) && \
+    test -d config || (echo "ERROR: config directory not found!" && exit 1) && \
+    echo "Verified: conf.yaml and required directories are present"
 
 # Install the package in editable mode (this installs all dependencies from pyproject.toml)
 # Note: omegaconf==2.0.6 requires pip<24.1 due to invalid metadata, so we downgrade pip first
@@ -90,7 +93,8 @@ RUN python3.10 -c "import tomli, uvicorn, loguru; print('Core dependencies verif
 RUN python3.10 -m pip install --no-cache-dir \
     edge-tts \
     azure-cognitiveservices-speech \
-    py3-tts || true
+    py3-tts \
+    elevenlabs || true
 
 # Create necessary directories and set ownership
 RUN mkdir -p \

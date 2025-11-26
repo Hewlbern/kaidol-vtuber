@@ -129,12 +129,12 @@ character_config:
         unload_at_exit: True # unload the model from memory at exit
 
       openai_llm:
-        llm_api_key: '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'
+        llm_api_key: 'OPENAI_API_KEY=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'
         model: 'gpt-5.0'
         temperature: 1.0 # value between 0 to 2
 
       gemini_llm:
-        llm_api_key: 'AIzaSyA13YyaKMCCf7gOz2cowtD3ozrpoKbROTQ'
+        llm_api_key: 'AIzaSyBoKe89QOc-7OYF63UI02elJ7jESai1wZQ'
         model: 'gemini-2.5-flash'
         temperature: 1.0 # value between 0 to 2
 
@@ -254,7 +254,7 @@ character_config:
 
   # =================== Text to Speech ===================
   tts_config:
-    tts_model: 'edge_tts'
+    tts_model: 'elevenlabs_tts'
     # text to speech model options:
     #   'azure_tts', 'pyttsx3_tts', 'edge_tts', 'bark_tts',
     #   'cosyvoice_tts', 'melo_tts', 'coqui_tts',
