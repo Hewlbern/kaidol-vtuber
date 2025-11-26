@@ -1,4 +1,4 @@
-# AIdol-Vtuber: VTuber Platform
+# KAIdol-Vtuber: VTuber Platform
 
 **⚠️ Work in Progress (WIP)** - This project is actively under development.
 
