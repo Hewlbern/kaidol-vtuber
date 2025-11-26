@@ -129,12 +129,12 @@ character_config:
         unload_at_exit: True # unload the model from memory at exit
 
       openai_llm:
-        llm_api_key: 'OPENAI_API_KEY=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'
+        llm_api_key: 'OPENAI_API_KEY='
         model: 'gpt-5.0'
         temperature: 1.0 # value between 0 to 2
 
       gemini_llm:
-        llm_api_key: 'AIzaSyBoKe89QOc-7OYF63UI02elJ7jESai1wZQ'
+        llm_api_key: ''
         model: 'gemini-2.5-flash'
         temperature: 1.0 # value between 0 to 2
 
@@ -406,7 +406,7 @@ character_config:
       pronunciation_dict: ''
 
     elevenlabs_tts:
-      api_key: 'sk_6dd3a00f085057be89892ff260922c2bd7ada3835c763c19'
+      api_key: ''
       voice_id: 'jqcCZkN6Knx8BJ5TBdYR' # Voice ID from ElevenLabs
       model_id: 'eleven_multilingual_v2' # Model ID (e.g., eleven_multilingual_v2)
       output_format: 'mp3_44100_128' # Output audio format (e.g., mp3_44100_128)
