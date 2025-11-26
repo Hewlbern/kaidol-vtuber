@@ -127,13 +127,19 @@ def run(console_log_level: str = "INFO") -> None:
         config=config,
     )
 
+    # Use 0.0.0.0 in Docker to accept connections from outside container
+    host = server_config.host
+    if os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER"):
+        host = "0.0.0.0"
+        logger.info("Running in Docker, binding to 0.0.0.0")
+
     uvicorn.run(
         app=server.app,
-        host=server_config.host,
+        host=host,
         port=server_config.port,
         log_level=console_log_level.lower(),
         proxy_headers=True,
-        forwarded_allow_ips="127.0.0.1,::1",
+        forwarded_allow_ips="*",  # Allow all IPs for Docker
     )
 
 

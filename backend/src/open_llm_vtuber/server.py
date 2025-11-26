@@ -42,6 +42,12 @@ class WebSocketServer:
             allow_headers=["*"],
         )
 
+        # Add health check endpoint
+        @self.app.get("/health")
+        async def health_check():
+            """Health check endpoint for Docker and monitoring."""
+            return {"status": "healthy", "service": "open-llm-vtuber"}
+
         # Load configurations and initialize the default context cache
         default_context_cache = ServiceContext()
         default_context_cache.load_from_config(config)
