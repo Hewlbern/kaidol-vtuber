@@ -263,13 +263,13 @@ export class ExpressionHandler {
    */
   private getModelPath(): string | null {
     // Try to get model path from various sources
-    if (this.model && (this.model as any).modelPath) {
-      return (this.model as any).modelPath;
+    if (this.model && (this.model as unknown as { modelPath: string }).modelPath) {
+      return (this.model as unknown as { modelPath: string }).modelPath;
     }
     
     // Fallback to checking the model's internal structure
-    if (this.model && (this.model as any).internalModel) {
-      const internalModel = (this.model as any).internalModel;
+    if (this.model && (this.model as unknown as { internalModel: { modelPath: string } }).internalModel) {
+      const internalModel = (this.model as unknown as { internalModel: { modelPath: string } }).internalModel;
       if (internalModel.modelPath) {
         return internalModel.modelPath;
       }

@@ -1,60 +1,117 @@
-# Base image
-FROM nvidia/cuda:12.6.0-cudnn-runtime-ubuntu22.04 AS base
+# Multi-stage build for Open-LLM-VTuber Backend
+# Optimized for AWS App Runner and local Docker Compose
+
+# ============================================================================
+# Stage 1: Base image with system dependencies
+# ============================================================================
+FROM ubuntu:22.04 AS base
 
 # Set noninteractive mode for apt
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update and install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common \
-    build-essential libsndfile1 \
+    build-essential \
+    libsndfile1 \
     git \
     curl \
     ffmpeg \
     libportaudio2 \
-    python3 \
-    g++ && \
-    rm -rf /var/lib/apt/lists/*
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    g++ \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install common dependencies
-COPY requirements.txt /tmp/
-
-# Install pip
-RUN curl https://bootstrap.pypa.io/get-pip.py | python3 - && \
-    pip install --root-user-action=ignore --no-cache-dir -r /tmp/requirements.txt && \
-    pip install --root-user-action=ignore --no-cache-dir funasr modelscope huggingface_hub pywhispercpp torch torchaudio edge-tts azure-cognitiveservices-speech py3-tts
-
-# MeloTTS installation
-WORKDIR /opt/MeloTTS
-RUN git clone https://github.com/myshell-ai/MeloTTS.git /opt/MeloTTS && \
-    pip install --root-user-action=ignore --no-cache-dir -e . && \
-    python3 -m unidic download && \
-    python3 melo/init_downloads.py
-
-# Whisper variant
-FROM base AS whisper
-ARG INSTALL_ORIGINAL_WHISPER=false
-RUN if [ "$INSTALL_WHISPER" = "true" ]; then \
-        pip install --root-user-action=ignore --no-cache-dir openai-whisper; \
-    fi
-
-# Bark variant
-FROM whisper AS bark
-ARG INSTALL_BARK=false
-RUN if [ "$INSTALL_BARK" = "true" ]; then \
-        pip install --root-user-action=ignore --no-cache-dir git+https://github.com/suno-ai/bark.git; \
-    fi
-
-# Final image
-FROM bark AS final
-
-# Copy application code to the container
-COPY . /app
+# Create app user (non-root for security)
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /app && \
+    chown -R appuser:appuser /app
 
 # Set working directory
 WORKDIR /app
 
-# Expose port 12393 (the new default port)
+# ============================================================================
+# Stage 2: Python dependencies installation
+# ============================================================================
+FROM base AS dependencies
+
+# Upgrade pip and install build tools
+RUN python3.11 -m pip install --upgrade pip setuptools wheel
+
+# Copy dependency files first (for better Docker layer caching)
+COPY pyproject.toml ./
+
+# ============================================================================
+# Stage 3: MeloTTS installation (if needed)
+# ============================================================================
+FROM dependencies AS melotts
+
+# Install MeloTTS
+WORKDIR /opt/MeloTTS
+RUN git clone https://github.com/myshell-ai/MeloTTS.git /opt/MeloTTS && \
+    pip3 install --no-cache-dir -e . && \
+    python3 -m unidic download && \
+    python3 melo/init_downloads.py || true
+
+# ============================================================================
+# Stage 4: Final application image
+# ============================================================================
+FROM melotts AS final
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HF_HOME=/app/models \
+    MODELSCOPE_CACHE=/app/models \
+    PORT=12393
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Install the package in editable mode (this installs all dependencies from pyproject.toml)
+# PyTorch is installed as part of dependencies, but we can override with CPU version if needed
+RUN pip3 install --no-cache-dir -e . || \
+    (pip3 install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+     pip3 install --no-cache-dir -e .)
+
+# Install optional TTS dependencies that might not be in pyproject.toml
+RUN pip3 install --no-cache-dir \
+    edge-tts \
+    azure-cognitiveservices-speech \
+    py3-tts || true
+
+# Create necessary directories and set ownership
+RUN mkdir -p \
+    cache \
+    logs \
+    models \
+    chat_history \
+    config/characters \
+    config/live2d-models \
+    config/shared \
+    config/shared/backgrounds \
+    config/shared/assets \
+    config/shared/avatars \
+    src/ui/frontend \
+    src/ui/web_tool \
+    src/ui/simple-live2d && \
+    chown -R appuser:appuser /app
+
+# Switch to app user (non-root for security)
+USER appuser
+
+# Expose port
 EXPOSE 12393
 
-CMD ["python3", "server.py"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:12393/health || exit 1
+
+# Default command
+CMD ["python3", "run_server.py"]

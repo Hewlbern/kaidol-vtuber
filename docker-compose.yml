@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Rust Core Backend (Lightweight, Fast)
+  rust-backend:
+    build:
+      context: ./rust-backend
+      dockerfile: Dockerfile
+    ports:
+      - "12393:12393"
+    environment:
+      - PYTHON_SERVICE_URL=http://python-ml:8000
+      - RUST_LOG=debug
+    volumes:
+      - ./backend/conf.yaml:/app/conf.yaml:ro
+      - ./backend/config:/app/config:ro
+      - ./backend/cache:/app/cache
+      - ./backend/chat_history:/app/chat_history
+    depends_on:
+      - python-ml
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+
+  # Python ML Services (Heavy, GPU-enabled)
+  python-ml:
+    build:
+      context: ./python-services
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - CONFIG_PATH=/app/conf.yaml
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./backend/conf.yaml:/app/conf.yaml:ro
+      - ./backend/config:/app/config:ro
+      - ./backend/cache:/app/cache
+      - ./backend/models:/app/models
+      - ./backend/chat_history:/app/chat_history
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        # Uncomment for GPU support
+        # reservations:
+        #   devices:
+        #     - driver: nvidia
+        #       count: 1
+        #       capabilities: [gpu]
+

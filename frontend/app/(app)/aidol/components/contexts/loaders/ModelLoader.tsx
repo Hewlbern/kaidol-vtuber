@@ -610,7 +610,7 @@ export const loadLive2DModel = async ({
     });
     
     // Check WebGL context health (with proper typing)
-    const webglContext1 = (app.renderer as any).context;
+    const webglContext1 = (app.renderer as unknown as { context: WebGLRenderingContext }).context;
     if (webglContext1) {
       console.log('[ModelLoader] DEBUG: WebGL Context Details:', {
         contextType: webglContext1.constructor.name,
@@ -655,19 +655,19 @@ export const loadLive2DModel = async ({
         modelPosition: model?.position,
         hasInternalModel: !!model?.internalModel,
         internalModelType: model?.internalModel?.constructor?.name,
-        hasCoreModel: !!(model?.internalModel as any)?.coreModel,
-        coreModelType: (model?.internalModel as any)?.coreModel?.constructor?.name
+        hasCoreModel: !!(model?.internalModel as unknown as { coreModel: unknown })?.coreModel,
+        coreModelType: (model?.internalModel as unknown as { coreModel: unknown })?.coreModel?.constructor?.name
       });
       
       // Check model's WebGL context requirements
-      const internalModel = model?.internalModel as any;
+      const internalModel = model?.internalModel as unknown as { coreModel: unknown };
       if (internalModel?.coreModel) {
         console.log('[ModelLoader] DEBUG: Model Core Model Details:', {
           hasCoreModel: !!internalModel.coreModel,
           coreModelType: internalModel.coreModel.constructor.name,
-          hasModelMatrix: !!internalModel.coreModel._modelMatrix,
-          hasCanvasInfo: !!internalModel.coreModel._canvasInfo,
-          canvasInfo: internalModel.coreModel._canvasInfo
+          hasModelMatrix: !!(internalModel.coreModel as unknown as { _modelMatrix: unknown })._modelMatrix,
+          hasCanvasInfo: !!(internalModel.coreModel as unknown as { _canvasInfo: unknown })._canvasInfo,
+          canvasInfo: (internalModel.coreModel as unknown as { _canvasInfo: unknown })._canvasInfo
         });
       }
       
@@ -749,7 +749,7 @@ export const loadLive2DModel = async ({
     console.log('[ModelLoader] Lifecycle - Adding Model to Stage');
     
     // Check WebGL context before adding model to stage
-    const webglContext2 = (app.renderer as any).context;
+    const webglContext2 = (app.renderer as unknown as { context: WebGLRenderingContext }).context;
     if (webglContext2 && webglContext2.isContextLost && webglContext2.isContextLost()) {
       console.error('[ModelLoader] ERROR: WebGL context is lost before adding model to stage!');
       throw new Error('WebGL context is lost - cannot render model');
@@ -815,7 +815,7 @@ export const loadLive2DModel = async ({
       app.render();
       console.log('[ModelLoader] DEBUG: Model rendering test successful');
     } catch (renderError) {
-      const webglContext = (app.renderer as any).context;
+      const webglContext = (app.renderer as unknown as { context: WebGLRenderingContext }).context;
       console.error('[ModelLoader] ERROR: Model rendering test failed:', {
         error: renderError instanceof Error ? renderError.message : String(renderError),
         stack: renderError instanceof Error ? renderError.stack : undefined,
@@ -832,7 +832,7 @@ export const loadLive2DModel = async ({
             'Model texture size exceeds WebGL limits',
             'Multiple WebGL contexts conflict with each other'
           ],
-          webGLVersion: webglContext?.version,
+          webGLVersion: webglContext?.VERSION,
           maxTextureSize: webglContext?.getParameter ? webglContext.getParameter(webglContext.MAX_TEXTURE_SIZE) : 'unknown',
           modelTextureSize: model.width + 'x' + model.height
         });

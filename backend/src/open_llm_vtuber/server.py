@@ -31,6 +31,7 @@ class WebSocketServer:
     def __init__(self, config: Config):
         self.app = FastAPI()
         self.config = config
+        self.autonomous_generator = None  # Will be initialized later
 
         # Add CORS
         self.app.add_middleware(
@@ -45,12 +46,43 @@ class WebSocketServer:
         default_context_cache = ServiceContext()
         default_context_cache.load_from_config(config)
 
-        # Include routes
+        # Create shared WebSocketHandler for both WebSocket and REST routes
+        from .websocket_handler import WebSocketHandler
+        ws_handler = WebSocketHandler(default_context_cache)
+
+        # Initialize autonomous message generator (disabled by default - must be activated)
+        from .autonomous_message_generator import AutonomousMessageGenerator
+        self.autonomous_generator = AutonomousMessageGenerator(
+            default_context=default_context_cache,
+            ws_handler=ws_handler,
+            interval_seconds=120.0,  # Base interval: 2 minutes
+            min_interval_seconds=120.0,  # Minimum: 2 minutes
+            max_interval_seconds=240.0,  # Maximum: 4 minutes
+            enabled=False  # Disabled by default - must be activated via API
+        )
+        
+        # Start the autonomous message generator on startup
+        @self.app.on_event("startup")
+        async def startup_event():
+            await self.autonomous_generator.start()
+        
+        @self.app.on_event("shutdown")
+        async def shutdown_event():
+            await self.autonomous_generator.stop()
+
+        # Include routes with shared WebSocketHandler
         self.app.include_router(
-            init_client_ws_route(default_context_cache=default_context_cache),
+            init_client_ws_route(
+                default_context_cache=default_context_cache,
+                ws_handler=ws_handler
+            ),
         )
         self.app.include_router(
-            init_webtool_routes(default_context_cache=default_context_cache),
+            init_webtool_routes(
+                default_context_cache=default_context_cache,
+                ws_handler=ws_handler,
+                autonomous_generator=self.autonomous_generator
+            ),
         )
 
         # Mount cache directory first (to ensure audio file access)

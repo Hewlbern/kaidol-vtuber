@@ -53,7 +53,8 @@ export const ModelProvider: React.FC<ModelProviderProps> = ({ children, isConnec
   const [positionState, positionDispatch] = useReducer(positionReducer, { x: 0.5, y: 0.5 });
 
   // Add position state
-  const [modelPosition, setModelPosition] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_modelPosition, setModelPosition] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
 
   // Motion state with reducer
   const [motionState, motionDispatch] = useReducer(motionReducer, { 
@@ -131,10 +132,7 @@ export const ModelProvider: React.FC<ModelProviderProps> = ({ children, isConnec
         currentScale: scaleState.currentScale,
         isScaling: false
       },
-      positionState: {
-        x: 0.5,
-        y: 0.5
-      },
+      positionState: positionState,
       setModelPosition,
       motionState: {
         expressionId: 0,
@@ -354,10 +352,10 @@ export const ModelProvider: React.FC<ModelProviderProps> = ({ children, isConnec
   const handlePositionChange = useCallback((position: ModelPosition) => {
     console.log('[ModelContext] Position change received:', {
       newPosition: position,
-      currentPosition: modelState.modelPosition
+      currentPosition: positionState
     });
     
-    // Update position state via reducer
+    // Update position state via reducer (ground truth)
     positionDispatch({ type: 'SET_POSITION', payload: position });
     
     // Also update the model state for backward compatibility
@@ -365,7 +363,7 @@ export const ModelProvider: React.FC<ModelProviderProps> = ({ children, isConnec
       ...prev,
       modelPosition: position
     }));
-  }, [modelState.modelPosition]);
+  }, [positionState]);
 
   const handleScaleChange = useCallback((scale: number) => {
     console.log('[ModelContext] Scale change received:', {
@@ -569,19 +567,19 @@ export const ModelProvider: React.FC<ModelProviderProps> = ({ children, isConnec
     }
   }, [scaleState.currentScale, modelState.modelScale]);
 
-  // Update position when it changes
+  // Sync positionState reducer to modelState.modelPosition when positionState changes
   useEffect(() => {
-    console.log('[ModelContext] Position updated:', {
-      modelPosition,
+    console.log('[ModelContext] Position state updated:', {
+      positionState,
       previousPosition: modelState.modelPosition
     });
     
-    // Update model state for backward compatibility
+    // Update model state to keep it in sync with reducer (ground truth)
     setModelState(prev => ({
       ...prev,
-      modelPosition
+      modelPosition: positionState
     }));
-  }, [modelPosition]);
+  }, [positionState]);
 
   // Handle expression change
   const handleExpressionChange = useCallback((expressionId: number) => {

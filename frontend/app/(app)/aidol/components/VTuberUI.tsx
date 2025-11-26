@@ -211,7 +211,7 @@ function VTuberUIContent() {
     } as WebSocketMessage);
   };
 
-  // Listen for AI responses
+  // Listen for AI responses and autonomous chat messages
   useEffect(() => {
     if (!isConnected) return;
 
@@ -231,6 +231,34 @@ function VTuberUIContent() {
         return [...prev, newMessage];
       });
     };
+
+    const handleAutonomousChat = (event: CustomEvent<{ text: string; type: string; timestamp?: number; source?: string }>) => {
+      const { text, source } = event.detail;
+      console.log('[VTuberUI] Handling autonomous chat message:', { text, source });
+      
+      // Add autonomous message to chat
+      setMessages(prev => {
+        const newMessage: ChatMessage = { 
+          text, 
+          role: 'ai' as const
+        };
+        console.log('[VTuberUI] Adding autonomous chat message:', newMessage);
+        return [...prev, newMessage];
+      });
+    };
+
+    window.addEventListener('text-response', handleTextResponse as EventListener);
+    window.addEventListener('autonomous-chat', handleAutonomousChat as EventListener);
+    
+    return () => {
+      window.removeEventListener('text-response', handleTextResponse as EventListener);
+      window.removeEventListener('autonomous-chat', handleAutonomousChat as EventListener);
+    };
+  }, [isConnected]);
+
+  // Handle audio responses
+  useEffect(() => {
+    if (!isConnected) return;
 
     const handleAudioResponse = async (data: {
       data: ArrayBuffer | string;
@@ -321,12 +349,6 @@ function VTuberUIContent() {
       }
     };
     
-    // Create properly typed event handlers
-    const textResponseHandler = (e: CustomEvent<{ text: string; type: string }>) => {
-      console.log('[VTuberUI] Received text-response event:', e.detail);
-      handleTextResponse(e);
-    };
-    
     // Create a wrapper function that doesn't return a promise
     const audioHandlerWrapper = (e: CustomEvent<{
       data: ArrayBuffer | string;
@@ -344,12 +366,10 @@ function VTuberUIContent() {
       });
     };
     
-    // Register event listeners with proper casting
-    window.addEventListener('text-response', textResponseHandler as EventListener);
+    // Register event listeners with proper casting (text-response is handled in the earlier useEffect)
     window.addEventListener('audio', audioHandlerWrapper as EventListener);
     
     return () => {
-      window.removeEventListener('text-response', textResponseHandler as EventListener);
       window.removeEventListener('audio', audioHandlerWrapper as EventListener);
     };
   }, [isConnected, sendMessage, characterHandler, isAudioReady, isModelLoading, handleAudioUpdate]);
@@ -557,7 +577,7 @@ export default function VTuberUI() {
         console.error('[VTuberUI] Failed to create AudioContext:', error);
         // Create a fallback context even if the main one fails
         try {
-          const fallbackContext = new (window as any).webkitAudioContext();
+          const fallbackContext = new (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext();
           setAudioContext(fallbackContext);
           console.log('[VTuberUI] Using fallback AudioContext');
         } catch (fallbackError) {
