@@ -126,7 +126,11 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
 
     const connectWebSocket = () => {
       try {
-        const wsUrl = customWsUrl || 'ws://localhost:12393/client-ws';
+        // Use production URL in production, localhost in development
+        const defaultWsUrl = process.env.NODE_ENV === 'production' 
+          ? 'wss://securita.hiero.gl/client-ws' 
+          : 'ws://localhost:12393/client-ws';
+        const wsUrl = customWsUrl || defaultWsUrl;
         const now = new Date();
         
         // Log connection attempt

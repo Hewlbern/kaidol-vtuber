@@ -3,7 +3,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: true,
-  swcMinify: true,
   
   // Avoid hydration errors with Live2D
   experimental: {
@@ -37,12 +36,18 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Webpack configuration for better compatibility
+  // Webpack configuration for better compatibility (used in production builds)
   webpack: (config) => {
     // Handle canvas-related modules for SSR
     config.externals = [...(config.externals || []), { canvas: 'canvas' }];
     
     return config;
+  },
+
+  // Turbopack configuration (Next.js 16 uses Turbopack by default for dev)
+  turbopack: {
+    // Add empty config to silence the error
+    // The webpack config above will still be used for production builds
   },
 };
 
